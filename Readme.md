@@ -31,7 +31,7 @@ let package = Package(
 
 #### For .xcodeproj projects
 
-1. click the menu File > Add Packages...
+1. Open menu File > Add Packages...
 2. Search for "https://github.com/berikv/FailableSequence.git" and click Add Package.
 3. Open your project file, select your target in "Targets".
 4. Open Dependencies
@@ -49,53 +49,61 @@ failableSequence(first: 0) { $0 + 1 }
 
 ## Usage
 
-Create a failable sequence using a start and next()
+Create a failable sequence using a `first` and `next()`.
 ```swift
-        struct DivisionByZero: Error {}
-        
-        let sequence = failableSequence(first: 10) { element in
-            if element == 0 { throw DivisionByZero() }
-            return 1 / element
-        }
+import FailableSequence
 
-        do {
-            try sequence.forEach { number in
-                print(number)
-            }
-        } catch {
-            print(error)
-        }
+struct DivisionByZero: Error {}
+
+let sequence = failableSequence(first: 10) { element in
+    if element == 0 { throw DivisionByZero() }
+    return 1 / element
+}
+
+do {
+    try sequence.forEach { number in
+        print(number)
+    }
+} catch {
+    print(error)
+}
 ```
 
-Create a lazy failable map from another sequence
+Create a lazy failable map from another sequence.
 ```swift
-        struct DivisionByZero: Error {}
+let sequence = (0..<4).failableMap { number -> Int in
+    if (3 - number) == 0 { throw DivisionByZero() }
+    return 1 / (3 - number)
+}
 
-        let sequence = (0..<4).failableMap { number -> Int in
-            if (3 - number) == 0 { throw DivisionByZero() }
-            return 1 / (3 - number)
-        }
-
-        do {
-            try sequence.forEach { number in
-                print(number)
-            }
-        } catch {
-            print(error)
-        }
+do {
+    try sequence.forEach { number in
+        print(number)
+    }
+} catch {
+    print(error)
+}
 ```
 
-Create an Array from a FailableSequence
+Create an Array from a FailableSequence.
 ```swift
-        struct DivisionByZero: Error {}
-        
-        // Note, if this sequence would throw it would be reported on Array init 
-        let sequence = (0..<4).failableMap { number -> Int in
-            if (4 - number) == 0 { throw DivisionByZero() }
-            return 1 / (4 - number)
-        }
+// Note, if this sequence throws, it would happen on Array init. 
+let sequence = (0..<3).failableMap { number -> Int in
+    if (3 - number) == 0 { throw DivisionByZero() }
+    return 1 / (3 - number)
+}
 
-        let array = try Array(sequence) // [0, 0, 0, 1]
+let array = try Array(sequence) // [0, 0, 1]
+```
+
+Note that throwing an error will not end the sequence.
+```swift
+let sequence = (0..<4).failableMap { number -> Int in
+    if number == 2 { throw DivisionByZero() }
+    return 1 / (2 - number)
+}
+
+let array = Array(sequence.skipOnThrowSequence) // [0, 1, -1]
 ```
 
 ## License

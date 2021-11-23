@@ -41,13 +41,23 @@ final class UsageTests: XCTestCase {
     }
 
     func test_intoArray() throws {
-        let sequence = (0..<4).failableMap { number -> Int in
-            if (4 - number) == 0 { throw DivisionByZero() }
-            return 1 / (4 - number)
+        let sequence = (0..<3).failableMap { number -> Int in
+            if (3 - number) == 0 { throw DivisionByZero() }
+            return 1 / (3 - number)
         }
 
-        let array = try Array(sequence) // [0, 0, 0, 1]
-        XCTAssertEqual(array, [0, 0, 0, 1])
+        let array = try Array(sequence) // [0, 0, 1]
+        XCTAssertEqual(array, [0, 0, 1])
+    }
+
+    func test_skipOnThrowSequence() {
+        let sequence = (0..<4).failableMap { number -> Int in
+            if number == 2 { throw DivisionByZero() }
+            return 1 / (2 - number)
+        }
+
+        let array = Array(sequence.skipOnThrowSequence) // [0, 1, -1]
+        XCTAssertEqual(array, [0, 1, -1])
     }
 
 }
