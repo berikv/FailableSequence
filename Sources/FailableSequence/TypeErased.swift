@@ -15,7 +15,7 @@ public struct AnyFailableIterator<Element>: FailableIterator {
         _next = { nil }
     }
 
-    public mutating func next() throws -> Element? {
+    public func next() throws -> Element? {
         try _next()
     }
 }
