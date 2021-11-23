@@ -17,7 +17,7 @@ let package = Package(
     name: " ... ",
     products: [ ... ],
     dependencies: [
-        .package(url: "https://github.com/berikv/FailableSequence.git", from: "0.0.1") // here
+        .package(url: "https://github.com/berikv/FailableSequence.git", from: "0.0.2") // here
     ],
     targets: [
         .target(
@@ -97,3 +97,7 @@ Create an Array from a FailableSequence
 
         let array = try Array(sequence) // [0, 0, 0, 1]
 ```
+
+## License
+
+Licensed under MIT. See the [license.md](./LICENSE.md)
