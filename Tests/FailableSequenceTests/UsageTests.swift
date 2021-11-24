@@ -1,63 +1,80 @@
 import XCTest
 @testable import FailableSequence
 
+/// Test class that validates the code in the project Readme.md
 final class UsageTests: XCTestCase {
-    struct DivisionByZero: Error {}
+    struct NumberIsThreeError: Error {}
 
     func test_create() {
-        let sequence = failableSequence(first: 10) { element in
-            if element == 0 { throw DivisionByZero() }
-            return 1 / element
+        let sequence = failableSequence(first: 0) { number in
+            let next = number + 1
+            if next == 3 { throw NumberIsThreeError() }
+            return next
         }
+
+        var numbers = [Int]()
+        var theError: Error?
 
         do {
-            try sequence.forEach { number in
-                print(number)
-            }
+            try sequence.forEach { numbers.append($0) }
         } catch {
-            print(error)
+            theError = error
         }
 
-        var iterator = sequence.makeIterator()
-        XCTAssertEqual(try iterator.next(), 0)
-        XCTAssertThrowsError(try iterator.next()) { error in
-            XCTAssert(error is DivisionByZero)
-        }
+        // numbers == [0, 1]
+        // error is NumberIsThreeError
+
+        XCTAssertEqual(numbers, [0, 1])
+        XCTAssert(theError is NumberIsThreeError)
     }
 
     func test_createFromExisting() {
         let sequence = (0..<4).failableMap { number -> Int in
-            if (3 - number) == 0 { throw DivisionByZero() }
-            return 1 / (3 - number)
+            let next = number + 1
+            if next == 3 { throw NumberIsThreeError() }
+            return next
         }
 
+        var numbers = [Int]()
+        var theError: Error?
+
         do {
-            try sequence.forEach { number in
-                print(number)
-            }
+            try sequence.forEach { numbers.append($0) }
         } catch {
-            print(error)
+            theError = error
         }
+
+        // numbers == [1, 2]
+        // error is NumberIsThreeError
+
+        XCTAssertEqual(numbers, [1, 2])
+        XCTAssert(theError is NumberIsThreeError)
     }
 
     func test_intoArray() throws {
-        let sequence = (0..<3).failableMap { number -> Int in
-            if (3 - number) == 0 { throw DivisionByZero() }
-            return 1 / (3 - number)
+        // Note, if this sequence would cause the *Array init* to throw an error if number == 3.
+        let sequence = failableSequence(first: 0) { number in
+            let next = number + 1
+            if next == 3 { throw NumberIsThreeError() }
+            return next
         }
 
-        let array = try Array(sequence) // [0, 0, 1]
-        XCTAssertEqual(array, [0, 0, 1])
+        let array = try Array(sequence.prefix(2))
+        // array == [0, 1]
+
+        XCTAssertEqual(array, [0, 1])
     }
 
     func test_skipOnThrowSequence() {
-        let sequence = (0..<4).failableMap { number -> Int in
-            if number == 2 { throw DivisionByZero() }
-            return 1 / (2 - number)
+        let sequence = (0...4).failableMap { number -> Int in
+            let next = number + 1
+            if next == 3 { throw NumberIsThreeError() }
+            return next
         }
 
-        let array = Array(sequence.skipOnThrowSequence) // [0, 1, -1]
-        XCTAssertEqual(array, [0, 1, -1])
-    }
+        let array = Array(sequence.skipOnThrowSequence)
+        // array == [1, 2, 4, 5]
 
+        XCTAssertEqual(array, [1, 2, 4, 5])
+    }
 }

@@ -10,3 +10,7 @@ public protocol FailableSequence {
 
     func makeIterator() -> Iterator
 }
+
+public extension FailableSequence where Self == Self.Iterator {
+    func makeIterator() -> Self { self }
+}

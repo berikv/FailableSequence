@@ -4,17 +4,11 @@ import XCTest
 final class FailableSequenceExtensionTests: XCTestCase {
     struct MyError: Error {}
 
-    var throwOnThirdElementSequence: AnyFailableSequence<Int>!
-
-    override func setUp() {
-        super.setUp()
-
-        throwOnThirdElementSequence = AnyFailableSequence(
-            (0..<10).failableMap { element -> Int in
-                if element == 2 { throw MyError() }
-                else { return element }
-            })
-    }
+    var throwOnThirdElementSequence = AnyFailableSequence(
+        (0..<10).failableMap { element -> Int in
+            if element == 2 { throw MyError() }
+            else { return element }
+        })
 
     func test_forEach() {
         do {
@@ -78,4 +72,8 @@ final class FailableSequenceExtensionTests: XCTestCase {
         XCTAssertThrowsError(try iter.next())
     }
 
+    func test_prefix() throws {
+        let endless = failableSequence(first: 0) { $0 + 1 }
+        XCTAssertEqual(try Array(endless.prefix(3)), [0, 1, 2])
+    }
 }

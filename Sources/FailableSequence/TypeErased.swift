@@ -1,6 +1,6 @@
 
 public struct AnyFailableIterator<Element>: FailableIterator {
-    let _next: () throws -> Element?
+    private let _next: () throws -> Element?
 
     public init<FI>(_ base: FI) where Element == FI.Element, FI : FailableIterator {
         var base = base
@@ -20,16 +20,10 @@ public struct AnyFailableIterator<Element>: FailableIterator {
     }
 }
 
-extension AnyFailableIterator: FailableSequence {
-     public func makeIterator() -> AnyFailableIterator<Element> {
-         self
-    }
-}
-
 public struct AnyFailableSequence<Element>: FailableSequence {
     public typealias Iterator = AnyFailableIterator<Element>
 
-    let makeUnderlyingIterator: () -> AnyFailableIterator<Element>
+    private let makeUnderlyingIterator: () -> AnyFailableIterator<Element>
 
     public init<FI>(_ makeUnderlyingIterator: @escaping () -> FI) where Element == FI.Element, FI : FailableIterator {
         self.makeUnderlyingIterator = {

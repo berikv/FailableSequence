@@ -1,8 +1,9 @@
 
-public struct SequenceWrappingFailableIterator<Base>: FailableIterator where Base: IteratorProtocol {
+public struct IteratorWrappingFailableIterator<Base>: FailableIterator where Base: IteratorProtocol {
     public typealias Element = Base.Element
 
-    var _base: Base
+    private var _base: Base
+
     public init(_ base: Base) {
         self._base = base
     }
@@ -14,20 +15,41 @@ public struct SequenceWrappingFailableIterator<Base>: FailableIterator where Bas
 
 public struct SequenceWrappingFailableSequence<Base>: FailableSequence where Base: Sequence {
     public typealias Element = Base.Element
-    public typealias Iterator = SequenceWrappingFailableIterator<Base.Iterator>
+    public typealias Iterator = IteratorWrappingFailableIterator<Base.Iterator>
 
-    let _base: Base
+    private let _base: Base
+
     public init(_ base: Base) {
         self._base = base
     }
 
-    public func makeIterator() -> SequenceWrappingFailableIterator<Base.Iterator> {
-        return SequenceWrappingFailableIterator(_base.makeIterator())
+    public func makeIterator() -> IteratorWrappingFailableIterator<Base.Iterator> {
+        return IteratorWrappingFailableIterator(_base.makeIterator())
     }
 }
 
 public extension Sequence {
-    func failableMap<ElementOfResult>(_ transform: @escaping (Element) throws -> ElementOfResult) -> FailableIteratorWrappingFailableSequence<SequenceWrappingFailableSequence<Self>, MappedFailableIterator<SequenceWrappingFailableIterator<Self.Iterator>, ElementOfResult>> {
-        SequenceWrappingFailableSequence(self).map(transform)
+    var failable: SequenceWrappingFailableSequence<Self> {
+        SequenceWrappingFailableSequence(self)
     }
 }
+
+public extension IteratorProtocol {
+    var failable: IteratorWrappingFailableIterator<Self> {
+        IteratorWrappingFailableIterator(self)
+    }
+}
+
+// Resolve ambiguoush initializer issue
+public extension Sequence where Self == Self.Iterator {
+    var failable: IteratorWrappingFailableIterator<Self> {
+        IteratorWrappingFailableIterator(self)
+    }
+}
+
+public extension Sequence {
+    func failableMap<ElementOfResult>(_ transform: @escaping (Element) throws -> ElementOfResult) -> MappedFailableSequence<SequenceWrappingFailableSequence<Self>, ElementOfResult> {
+        failable.map(transform)
+    }
+}
+

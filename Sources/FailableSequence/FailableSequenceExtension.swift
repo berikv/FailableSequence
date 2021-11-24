@@ -1,5 +1,4 @@
 
-
 public extension FailableSequence {
     func forEach(_ body: (Element) throws -> Void) throws {
         var iterator = makeIterator()
@@ -30,61 +29,75 @@ public extension FailableSequence {
     }
 }
 
-public struct DropFirstFailableIterator<Base>: FailableIterator
-where Base: FailableIterator
+public struct DropFirstFailableSequence<Base>: FailableSequence, FailableIterator
+where Base: FailableSequence
 {
     public typealias Element = Base.Element
 
-    var base: Base
-    var count: Int
+    private var base: Base
+    private var count: Int
+    private lazy var iterator = base.makeIterator()
+
+    fileprivate init(_ base: Base, count: Int) {
+        self.base = base
+        self.count = count
+    }
 
     public mutating func next() throws -> Element? {
         while count > 0 {
-            guard try base.next() != nil else { return nil }
+            guard try iterator.next() != nil else { return nil }
             count -= 1
         }
-        guard let element = try base.next() else { return nil }
-        return element
+
+        return try iterator.next()
     }
 }
 
 public extension FailableSequence {
-    func dropFirst(_ k: Int = 1) -> FailableIteratorWrappingFailableSequence<Self, DropFirstFailableIterator<Self.Iterator>> {
-        FailableIteratorWrappingFailableSequence(wrapping: self) { iterator in
-            DropFirstFailableIterator(base: iterator, count: k)
-        }
+    func dropFirst(_ k: Int = 1) -> DropFirstFailableSequence<Self> {
+        DropFirstFailableSequence(self, count: k)
     }
 }
 
-public struct MappedFailableIterator<Base, Element>: FailableIterator
-where Base: FailableIterator
+public struct MappedFailableSequence<Base, Element>: FailableSequence, FailableIterator
+where Base: FailableSequence
 {
-    var base: Base
-    let transform: (Base.Element) throws -> Element
+    private var base: Base
+    private let transform: (Base.Element) throws -> Element
+    private lazy var iterator = base.makeIterator()
+
+    fileprivate init(_ base: Base, transform: @escaping (Base.Element) throws -> Element) {
+        self.base = base
+        self.transform = transform
+    }
 
     public mutating func next() throws -> Element? {
-        guard let element = try base.next() else { return nil }
+        guard let element = try iterator.next() else { return nil }
         return try transform(element)
     }
 }
 
 public extension FailableSequence {
-    func map<ElementOfResult>(_ transform: @escaping (Element) throws -> ElementOfResult) -> FailableIteratorWrappingFailableSequence<Self, MappedFailableIterator<Self.Iterator, ElementOfResult>> {
-        FailableIteratorWrappingFailableSequence(wrapping: self) { iterator in
-            MappedFailableIterator(base: iterator, transform: transform)
-        }
+    func map<ElementOfResult>(_ transform: @escaping (Element) throws -> ElementOfResult) -> MappedFailableSequence<Self, ElementOfResult> {
+        MappedFailableSequence(self, transform: transform)
     }
 }
 
-public struct CompactMappedFailableIterator<Base, Element>: FailableIterator
-where Base: FailableIterator
+public struct CompactMappedFailableSequence<Base, Element>: FailableSequence, FailableIterator
+where Base: FailableSequence
 {
-    var base: Base
-    let transform: (Base.Element) throws -> Element?
+    private var base: Base
+    private let transform: (Base.Element) throws -> Element?
+    private lazy var iterator = base.makeIterator()
+
+    fileprivate init(_ base: Base, transform: @escaping (Base.Element) throws -> Element?) {
+        self.base = base
+        self.transform = transform
+    }
 
     public mutating func next() throws -> Element? {
         while true {
-            guard let element = try base.next() else { return nil }
+            guard let element = try iterator.next() else { return nil }
             guard let result = try transform(element) else { continue }
             return result
         }
@@ -92,22 +105,28 @@ where Base: FailableIterator
 }
 
 public extension FailableSequence {
-    func compactMap<ElementOfResult>(_ transform: @escaping (Self.Element) throws -> ElementOfResult?) -> FailableIteratorWrappingFailableSequence<Self, CompactMappedFailableIterator<Self.Iterator, ElementOfResult>> {
-        FailableIteratorWrappingFailableSequence(wrapping: self) { iterator in
-            CompactMappedFailableIterator(base: iterator, transform: transform)
-        }
+    func compactMap<ElementOfResult>(_ transform: @escaping (Self.Element) throws -> ElementOfResult?) -> CompactMappedFailableSequence<Self, ElementOfResult> {
+        CompactMappedFailableSequence(self, transform: transform)
     }
 }
 
-public struct FilteredFailableIterator<Base>: FailableIterator
-where Base: FailableIterator
+public struct FilteredFailableSequence<Base>: FailableSequence, FailableIterator
+where Base: FailableSequence
 {
-    var base: Base
-    let isIncluded: (Base.Element) throws -> Bool
+    public typealias Element = Base.Element
 
-    public mutating func next() throws -> Base.Element? {
+    private var base: Base
+    private let isIncluded: (Base.Element) throws -> Bool
+    private lazy var iterator = base.makeIterator()
+
+    fileprivate init(_ base: Base, isIncluded: @escaping (Base.Element) throws -> Bool) {
+        self.base = base
+        self.isIncluded = isIncluded
+    }
+
+    public mutating func next() throws -> Element? {
         while true {
-            guard let element = try base.next() else { return nil }
+            guard let element = try iterator.next() else { return nil }
             guard try isIncluded(element) else { continue }
             return element
         }
@@ -115,9 +134,32 @@ where Base: FailableIterator
 }
 
 public extension FailableSequence {
-    func filter(_ isIncluded: @escaping (Element) throws -> Bool) rethrows -> FailableIteratorWrappingFailableSequence<Self, FilteredFailableIterator<Self.Iterator>> {
-        FailableIteratorWrappingFailableSequence(wrapping: self) { iterator in
-            FilteredFailableIterator(base: iterator, isIncluded: isIncluded)
-        }
+    func filter(_ isIncluded: @escaping (Element) throws -> Bool) rethrows -> FilteredFailableSequence<Self> {
+        FilteredFailableSequence(self, isIncluded: isIncluded)
+    }
+}
+
+public struct PrefixFailableSequence<Base>: FailableSequence, FailableIterator where Base: FailableSequence {
+    public typealias Element = Base.Element
+
+    private var base: Base
+    private var maxLength: Int
+    private lazy var iterator = base.makeIterator()
+
+    fileprivate init(_ base: Base, maxLength: Int) {
+        self.base = base
+        self.maxLength = maxLength
+    }
+
+    public mutating func next() throws -> Element? {
+        if maxLength == 0 { return nil }
+        maxLength -= 1
+        return try iterator.next()
+    }
+}
+
+public extension FailableSequence {
+    func prefix(_ maxLength: Int) -> PrefixFailableSequence<Self> {
+        PrefixFailableSequence(self, maxLength: maxLength)
     }
 }
