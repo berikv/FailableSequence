@@ -1,4 +1,9 @@
 
+/// A type-erased iterator of `Element`.
+///
+/// This iterator forwards its `next()` method to an arbitrary underlying
+/// iterator having the same `Element` type, hiding the specifics of the
+/// underlying `FailableIterator`.
 public struct AnyFailableIterator<Element>: FailableIterator {
     private let _next: () throws -> Element?
 
@@ -92,6 +97,11 @@ public struct AnyFailableIterator<Element>: FailableIterator {
     }
 }
 
+/// A type-erased sequence.
+///
+/// An instance of `AnyFailableSequence` forwards its operations to an underlying base
+/// sequence having the same `Element` type, hiding the specifics of the
+/// underlying sequence.
 public struct AnyFailableSequence<Element>: FailableSequence {
 
     /// A type that provides the failableSequence's iteration interface and
