@@ -65,20 +65,13 @@ public struct SequenceWrappingFailableSequence<Base>: FailableSequence where Bas
 
 public extension Sequence {
     /// A FailableSequence containing the same elements as this failableSequence.
+    @_disfavoredOverload
     var failable: SequenceWrappingFailableSequence<Self> {
         SequenceWrappingFailableSequence(self)
     }
 }
 
 public extension IteratorProtocol {
-    /// A FailableSequence containing the same elements as this failableSequence.
-    var failable: IteratorWrappingFailableIterator<Self> {
-        IteratorWrappingFailableIterator(self)
-    }
-}
-
-// Resolve ambiguoush initializer issue
-public extension Sequence where Self == Self.Iterator {
     /// A FailableSequence containing the same elements as this failableSequence.
     var failable: IteratorWrappingFailableIterator<Self> {
         IteratorWrappingFailableIterator(self)
